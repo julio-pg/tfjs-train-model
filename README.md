@@ -53,7 +53,7 @@ node train.js
 This script will:
 - Define a simple linear regression model.
 - Train the model using synthetic data.
-- Save the trained model to the `saved_model/` directory.
+- Save the trained model to the `ai_model/` directory.
 
 ### Serving Predictions
 

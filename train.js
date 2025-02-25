@@ -1,35 +1,72 @@
 const tf = require('@tensorflow/tfjs-node');
-const fs = require('fs');
-const path = require('path');
 
-// Define a simple model
-const model = tf.sequential();
-model.add(tf.layers.dense({ units: 1, inputShape: [1] }));
+// Define the game rules
+const types = ['fire', 'grass', 'water', 'electric', 'ground'];
+const typeAdvantages = {
+  'fire': 'grass',
+  'grass': 'water',
+  'grass': 'ground',
+  'water': 'fire',
+  'water': 'ground',
+  'ground': 'electric',
+  'ground': 'fire',
+  'electric': 'water',
+};
 
-// Compile the model
-model.compile({ optimizer: 'sgd', loss: 'meanSquaredError' });
+// Function to generate training data
+function generateTrainingData(numSamples) {
+  const inputs = []; // Player's card (one-hot encoded)
+  const labels = []; // AI's optimal card (one-hot encoded)
 
-// Generate some synthetic data for training
-const xs = tf.tensor2d([1, 2, 3, 4], [4, 1]);
-const ys = tf.tensor2d([1, 3, 5, 7], [4, 1]);
+  for (let i = 0; i < numSamples; i++) {
+    // Randomly select a player card
+    const playerCard = types[Math.floor(Math.random() * types.length)];
 
-// Train the model
-model.fit(xs, ys, { epochs: 10 }).then(() => {
-  console.log('Model training complete!');
+    // One-hot encode the player's card
+    const input = types.map(type => type === playerCard ? 1 : 0);
+    inputs.push(input);
 
-  // Save the model with an incremental name
-
-  const dir = './saved_model';
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir);
+    // Determine the AI's optimal card based on the rules
+    const aiCard = typeAdvantages[playerCard];
+    const label = types.map(type => type === aiCard ? 1 : 0);
+    labels.push(label);
   }
 
-  const files = fs.readdirSync(dir);
-  const modelNumber = files.length + 1;
-  const modelPath = path.join(dir, `model-${modelNumber}`);
+  return {
+    inputs: tf.tensor2d(inputs),
+    labels: tf.tensor2d(labels)
+  };
+}
 
-  model.save(`file://${modelPath}`).then(() => {
-    console.log(`Model saved to ${modelPath}/`);
+// Generate 1000 samples of training data
+const { inputs, labels } = generateTrainingData(1000);
+console.log('Inputs:', inputs.arraySync());
+console.log('Labels:', labels.arraySync());
+
+// Define the model
+const model = tf.sequential();
+model.add(tf.layers.dense({ units: 16, activation: 'relu', inputShape: [types.length] })); // Input layer
+model.add(tf.layers.dense({ units: types.length, activation: 'softmax' })); // Output layer
+
+// Compile the model
+model.compile({
+  optimizer: 'adam',
+  loss: 'categoricalCrossentropy',
+  metrics: ['accuracy']
+});
+
+// Train the model
+model.fit(inputs, labels, {
+  epochs: 10,
+  batchSize: 32,
+  validationSplit: 0.2
+}).then((history) => {
+  console.log('Training complete!');
+  console.log(history)
+  console.log('Final accuracy:', history.history.acc.pop());
+
+  // Save the model
+  model.save('file://./ai_model').then(() => {
+    console.log('Model saved to ai_model/');
   });
-
 });
