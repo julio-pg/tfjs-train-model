@@ -4,7 +4,7 @@ const tf = require('@tensorflow/tfjs-node');
 const types = ['fire', 'grass', 'water', 'electric', 'ground'];
 const typeAdvantages = {
   'fire': 'water',
-  'fire': 'ground',
+  // 'fire': 'ground',
   'grass': 'fire',
   'water': 'electric',
   // 'water': 'grass',
@@ -85,9 +85,9 @@ function generateTrainingData(numSamples) {
 
 
 // Generate 1000 samples of training data
-const { inputs, labels } = generateTrainingData(1000);
-console.log('Inputs:', inputs.arraySync());
-console.log('Labels:', labels.arraySync());
+const { inputs, labels } = generateTrainingData(3000);
+// console.log('Inputs:', inputs.arraySync());
+// console.log('Labels:', labels.arraySync());
 
 // Define the model
 const model = tf.sequential();
@@ -108,7 +108,6 @@ model.fit(inputs, labels, {
   validationSplit: 0.2
 }).then((history) => {
   console.log('Training complete!');
-  console.log(history)
   console.log('Final accuracy:', history.history.acc.pop());
 
   // Save the model
